@@ -66,7 +66,9 @@ setInterval(async () => {
 }, CHECK_INTERVAL_MS);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+// Thêm '0.0.0.0' vào tham số thứ hai
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Smart Locker backend đang chạy tại http://localhost:${PORT}`);
   console.log(`- Trang shipper (công khai): http://localhost:${PORT}/`);
   console.log(`- Trang admin:               http://localhost:${PORT}/admin/`);

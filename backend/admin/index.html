@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Locker – Quản trị</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- MÀN HÌNH ĐĂNG NHẬP -->
+<div id="loginScreen" class="login-screen">
+  <form id="loginForm" class="login-box">
+    <div class="brand">⬢ SMART LOCKER <span>Quản trị</span></div>
+    <label>Tên đăng nhập <input type="text" id="loginUsername" required autocomplete="username" /></label>
+    <label>Mật khẩu <input type="password" id="loginPassword" required autocomplete="current-password" /></label>
+    <button type="submit" class="btn-primary">Đăng nhập</button>
+    <p id="loginError" class="error" hidden></p>
+  </form>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="dashboard" hidden>
+  <aside class="sidebar">
+    <div class="brand">⬢ SMART LOCKER</div>
+    <nav>
+      <button class="nav-item active" data-tab="tongquan">Tổng quan</button>
+      <button class="nav-item" data-tab="donhang">Đơn hàng</button>
+      <button class="nav-item" data-tab="tu">Ngăn tủ</button>
+      <button class="nav-item" data-tab="cudan">Cư dân</button>
+      <button class="nav-item" data-tab="shipper">Shipper</button>
+      <button class="nav-item" data-tab="canhbao">Cảnh báo</button>
+      <button class="nav-item" data-tab="lichsu">Lịch sử / Camera</button>
+      <button class="nav-item" data-tab="sms">Nhật ký SMS</button>
+    </nav>
+    <button id="logoutBtn" class="btn-secondary">Đăng xuất</button>
+  </aside>
+
+  <main class="content">
+
+    <section id="tab-tongquan" class="tab">
+      <h2>Tổng quan</h2>
+      <div class="stat-grid" id="statGrid"></div>
+    </section>
+
+    <section id="tab-donhang" class="tab" hidden>
+      <h2>Đơn hàng</h2>
+      <div class="toolbar">
+        <select id="orderFilter">
+          <option value="">Tất cả trạng thái</option>
+          <option value="cho_dat_hang">Chờ đặt hàng</option>
+          <option value="co_hang">Có hàng - chờ nhận</option>
+          <option value="da_mo_cho_nhan">Đang mở cho nhận</option>
+          <option value="hoan_thanh">Hoàn thành</option>
+          <option value="huy">Đã huỷ</option>
+        </select>
+        <button id="refreshOrders" class="btn-secondary small">Làm mới</button>
+      </div>
+      <div class="table-wrap"><table id="orderTable"><thead><tr>
+        <th>Mã đơn</th><th>Ngăn</th><th>Người nhận</th><th>Phòng</th><th>Shipper</th><th>Mã vận đơn</th><th>Trạng thái</th><th>Tạo lúc</th><th>Thao tác</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-tu" class="tab" hidden>
+      <h2>Ngăn tủ</h2>
+      <div class="toolbar">
+        <input type="text" id="newLockerId" placeholder="Mã ngăn mới, vd: A05" />
+        <button id="addLockerBtn" class="btn-secondary small">+ Thêm ngăn</button>
+      </div>
+      <div class="locker-grid" id="lockerGrid"></div>
+    </section>
+
+    <section id="tab-cudan" class="tab" hidden>
+      <h2>Danh sách cư dân / sinh viên được phép nhận hàng</h2>
+      <form id="addResidentForm" class="toolbar">
+        <input type="tel" id="resPhone" placeholder="Số điện thoại" required />
+        <input type="text" id="resName" placeholder="Họ tên" required />
+        <input type="text" id="resRoom" placeholder="Phòng / lớp" />
+        <button type="submit" class="btn-secondary small">+ Thêm cư dân</button>
+      </form>
+      <div class="table-wrap"><table id="residentTable"><thead><tr>
+        <th>SĐT</th><th>Họ tên</th><th>Phòng</th><th>Trạng thái</th><th>Thao tác</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-shipper" class="tab" hidden>
+      <h2>Shipper</h2>
+      <p class="hint">Theo dõi số đơn đã tạo, số lần mở tủ nhưng không đặt hàng, và trạng thái khoá tạm.</p>
+      <div class="table-wrap"><table id="shipperTable"><thead><tr>
+        <th>SĐT shipper</th><th>Số đơn gần đây</th><th>Số lần vi phạm</th><th>Trạng thái</th><th>Thao tác</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-canhbao" class="tab" hidden>
+      <h2>Cảnh báo</h2>
+      <h3>Ngăn tủ đang mở quá lâu</h3>
+      <div class="table-wrap"><table id="openTooLongTable"><thead><tr>
+        <th>Ngăn</th><th>Trạng thái</th><th>Mở từ lúc</th>
+      </tr></thead><tbody></tbody></table></div>
+      <h3>Sự kiện cảnh báo</h3>
+      <div class="table-wrap"><table id="warningTable"><thead><tr>
+        <th>Thời gian</th><th>Ngăn</th><th>Loại</th><th>Nội dung</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-lichsu" class="tab" hidden>
+      <h2>Lịch sử mở cửa / Camera</h2>
+      <div class="table-wrap"><table id="historyTable"><thead><tr>
+        <th>Thời gian</th><th>Ngăn</th><th>Loại sự kiện</th><th>Nội dung</th><th>Ảnh</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-sms" class="tab" hidden>
+      <h2>Nhật ký SMS đã gửi</h2>
+      <div class="table-wrap"><table id="smsTable"><thead><tr>
+        <th>Thời gian</th><th>SĐT</th><th>Nội dung</th><th>Nhà cung cấp</th><th>Kết quả</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Locker – Gửi hàng không cần đăng nhập</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="hero-mark">⬢</div>
+      <h1>SMART LOCKER</h1>
+      <p class="sub">Gửi hàng không cần đăng nhập</p>
+    </header>
+
+    <!-- BƯỚC 1: FORM NHẬP THÔNG TIN -->
+    <section id="formCard" class="card">
+      <div class="stock-line" id="stockLine">Đang kiểm tra số ngăn trống…</div>
+
+      <form id="shipForm">
+        <label>Số điện thoại người nhận
+          <input type="tel" id="recipientPhone" placeholder="0901234567" required pattern="0[0-9]{9}" />
+        </label>
+        <label>Tên người nhận <span class="opt">(không bắt buộc)</span>
+          <input type="text" id="recipientName" placeholder="Nguyễn Văn A" />
+        </label>
+        <label>Phòng / lớp / mã sinh viên <span class="opt">(không bắt buộc)</span>
+          <input type="text" id="room" placeholder="502 - Tòa A" />
+        </label>
+        <hr />
+        <label>Số điện thoại của bạn (shipper)
+          <input type="tel" id="shipperPhone" placeholder="0987654321" required pattern="0[0-9]{9}" />
+        </label>
+        <label>Mã vận đơn <span class="opt">(nếu có)</span>
+          <input type="text" id="trackingCode" placeholder="SPX123456" />
+        </label>
+
+        <button type="submit" id="submitBtn" class="btn-primary">MỞ TỦ ĐỂ GỬI HÀNG</button>
+        <p id="formError" class="error" hidden></p>
+      </form>
+    </section>
+
+    <!-- BƯỚC 2: TỦ ĐÃ MỞ, CHỜ THAO TÁC -->
+    <section id="statusCard" class="card" hidden>
+      <div class="locker-badge" id="lockerBadge">A0?</div>
+      <h2 id="statusTitle">Tủ đang mở</h2>
+      <p id="statusMessage" class="status-msg">Vui lòng đặt kiện hàng vào và đóng cửa.</p>
+      <div class="spinner" id="spinner"></div>
+      <button class="btn-secondary" id="newOrderBtn" hidden>Tạo đơn khác</button>
+    </section>
+
+    <footer>
+      <p>Không có kiện hàng để gửi? <a href="#" id="helpLink">Xem hướng dẫn nhận hàng</a></p>
+    </footer>
+  </div>
+
+  <div id="helpModal" class="modal" hidden>
+    <div class="modal-box">
+      <h3>Hướng dẫn nhận hàng</h3>
+      <p>Người nhận không cần dùng trang web này. Khi có hàng, bạn sẽ nhận được tin nhắn SMS chứa mã OTP 6 số.
+      Đến tủ, nhập mã OTP trên bàn phím và bấm <b>#</b> để mở đúng ngăn chứa hàng của bạn.</p>
+      <button class="btn-secondary" id="closeHelp">Đóng</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

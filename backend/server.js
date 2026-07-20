@@ -1,12 +1,13 @@
 require("dotenv").config();
+console.log("DATABASE_URL =", process.env.DATABASE_URL);
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const path = require("path");
 const { nanoid } = require("nanoid");
 const { transaction } = require("./data/db");
+const pool = require("./data/postgres");
 const antifraud = require("./services/antifraud");
-
 const publicRoutes = require("./routes/public");
 const deviceRoutes = require("./routes/device");
 const adminRoutes = require("./routes/admin");
@@ -64,6 +65,18 @@ setInterval(async () => {
     console.error("Lỗi kiểm tra timeout cửa mở:", err.message);
   }
 }, CHECK_INTERVAL_MS);
+
+// Kiểm tra kết nối Supabase
+(async () => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    console.log("✅ Kết nối Supabase thành công!");
+    console.log(result.rows[0]);
+  } catch (err) {
+    console.error("❌ Không kết nối được Supabase");
+    console.error(err);
+  }
+})();
 
 const PORT = process.env.PORT || 3000;
 

@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { nanoid } = require("nanoid");
 const { transaction, readOnly } = require("../data/db");
+const pool = require("../data/postgres");
 const { requireAdmin } = require("../middleware/auth");
 const otpService = require("../services/otp");
 const smsService = require("../services/sms");
@@ -12,16 +13,68 @@ const antifraud = require("../services/antifraud");
 
 // ---------- Đăng nhập ----------
 router.post("/login", async (req, res) => {
-  const { username, password } = req.body || {};
-  const data = readOnly((d) => d);
-  const admin = data.admins.find((a) => a.username === username);
-  if (!admin || !bcrypt.compareSync(password || "", admin.passwordHash)) {
-    return res.status(401).json({ success: false, message: "Sai tên đăng nhập hoặc mật khẩu." });
+  try {
+    const { username, password } = req.body || {};
+
+    const result = await pool.query(
+      "SELECT * FROM admins WHERE username=$1 LIMIT 1",
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: "Sai tên đăng nhập hoặc mật khẩu.",
+      });
+    }
+
+    const admin = result.rows[0];
+    console.log(admin);
+
+    // Cho phép đăng nhập nếu đúng mật khẩu thô hoặc khớp bcrypt
+    let ok = false;
+    if (admin.password_hash === password) {
+      ok = true;
+    } else {
+      try {
+        ok = bcrypt.compareSync(password || "", admin.password_hash);
+      } catch (e) {
+        ok = false;
+      }
+    }
+
+    if (!ok) {
+      return res.status(401).json({
+        success: false,
+        message: "Sai tên đăng nhập hoặc mật khẩu.",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: admin.id,
+        username: admin.username,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "12h",
+      }
+    );
+
+    res.json({
+      success: true,
+      token,
+      username: admin.username,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ",
+    });
   }
-  const token = jwt.sign({ id: admin.id, username: admin.username }, process.env.JWT_SECRET, {
-    expiresIn: "12h",
-  });
-  res.json({ success: true, token, username: admin.username });
 });
 
 router.post("/doi-mat-khau", requireAdmin, async (req, res) => {

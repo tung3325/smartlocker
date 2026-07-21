@@ -29,19 +29,11 @@ router.post("/login", async (req, res) => {
     }
 
     const admin = result.rows[0];
-    console.log(admin);
 
-    // Cho phép đăng nhập nếu đúng mật khẩu thô hoặc khớp bcrypt
-    let ok = false;
-    if (admin.password_hash === password) {
-      ok = true;
-    } else {
-      try {
-        ok = bcrypt.compareSync(password || "", admin.password_hash);
-      } catch (e) {
-        ok = false;
-      }
-    }
+    const ok = bcrypt.compareSync(
+      password || "",
+      admin.password_hash
+    );
 
     if (!ok) {
       return res.status(401).json({
@@ -97,72 +89,225 @@ router.post("/doi-mat-khau", requireAdmin, async (req, res) => {
 router.use(requireAdmin);
 
 // ---------- 1. Quản lý danh sách cư dân / sinh viên ----------
-router.get("/residents", (req, res) => {
-  const data = readOnly((d) => d);
-  res.json({ success: true, residents: data.residents });
+router.get("/residents", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM residents
+      ORDER BY name
+    `);
+
+    res.json({
+      success: true,
+      residents: result.rows,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Lỗi đọc dữ liệu cư dân",
+    });
+  }
 });
 
 router.post("/residents", async (req, res) => {
-  const { phone, name, room } = req.body || {};
-  if (!phone || !name) return res.status(400).json({ success: false, message: "Thiếu số điện thoại hoặc tên." });
-  const result = await transaction(async (data) => {
-    if (data.residents.some((r) => r.phone === phone)) {
-      return { success: false, message: "Số điện thoại này đã tồn tại trong danh sách." };
+  try {
+    const { phone, name, room } = req.body || {};
+
+    if (!phone || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu số điện thoại hoặc tên."
+      });
     }
-    const resident = { id: `res-${nanoid(8)}`, phone, name, room: room || "", active: true };
-    data.residents.push(resident);
-    return { success: true, resident };
-  });
-  res.json(result);
+
+    const exists = await pool.query(
+      "SELECT id FROM residents WHERE phone = $1",
+      [phone]
+    );
+
+    if (exists.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Số điện thoại đã tồn tại."
+      });
+    }
+
+    const id = `res-${nanoid(8)}`;
+
+    const result = await pool.query(
+      `INSERT INTO residents(id, phone, name, room, active)
+       VALUES($1,$2,$3,$4,true)
+       RETURNING *`,
+      [id, phone, name, room]
+    );
+
+    res.json({
+      success: true,
+      resident: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ"
+    });
+  }
 });
 
 router.put("/residents/:id", async (req, res) => {
-  const { name, room, active } = req.body || {};
-  const result = await transaction(async (data) => {
-    const resident = data.residents.find((r) => r.id === req.params.id);
-    if (!resident) return { success: false, message: "Không tìm thấy cư dân." };
-    if (name !== undefined) resident.name = name;
-    if (room !== undefined) resident.room = room;
-    if (active !== undefined) resident.active = active;
-    return { success: true, resident };
-  });
-  res.json(result);
+  try {
+    const { name, room, active } = req.body;
+
+    const result = await pool.query(
+      `UPDATE residents
+       SET name = $1,
+           room = $2,
+           active = $3
+       WHERE id = $4
+       RETURNING *`,
+      [name, room, active, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy cư dân."
+      });
+    }
+
+    res.json({
+      success: true,
+      resident: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Lỗi cập nhật cư dân."
+    });
+  }
 });
 
 router.delete("/residents/:id", async (req, res) => {
-  const result = await transaction(async (data) => {
-    const idx = data.residents.findIndex((r) => r.id === req.params.id);
-    if (idx === -1) return { success: false, message: "Không tìm thấy cư dân." };
-    data.residents.splice(idx, 1);
-    return { success: true };
-  });
-  res.json(result);
+  try {
+
+    const result = await pool.query(
+      `DELETE FROM residents
+       WHERE id = $1
+       RETURNING id`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy cư dân."
+      });
+    }
+
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Lỗi xóa cư dân."
+    });
+  }
 });
 
 // ---------- 2. Trạng thái các ngăn tủ ----------
-router.get("/lockers", (req, res) => {
-  const data = readOnly((d) => d);
-  res.json({ success: true, lockers: data.lockers });
+router.get("/lockers", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        status,
+        current_order_id AS "currentOrderId",
+        pending_command AS "pendingCommand",
+        updated_at AS "updatedAt"
+      FROM lockers
+      ORDER BY id
+    `);
+
+    res.json({
+      success: true,
+      lockers: result.rows,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Lỗi đọc dữ liệu lockers",
+    });
+  }
 });
 
 // Thêm ngăn tủ mới (mở rộng hệ thống thêm cabinet/ngăn)
 router.post("/lockers", async (req, res) => {
-  const { id } = req.body || {};
-  if (!id) return res.status(400).json({ success: false, message: "Thiếu mã ngăn tủ." });
-  const result = await transaction(async (data) => {
-    if (data.lockers.some((l) => l.id === id)) {
-      return { success: false, message: "Mã ngăn tủ đã tồn tại." };
+  try {
+    const { id } = req.body || {};
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu mã ngăn tủ.",
+      });
     }
-    data.lockers.push({
-      id,
-      status: "trong",
-      currentOrderId: null,
-      pendingCommand: null,
-      updatedAt: new Date().toISOString(),
+
+    // Kiểm tra đã tồn tại chưa
+    const check = await pool.query(
+      "SELECT id FROM lockers WHERE id = $1",
+      [id]
+    );
+
+    if (check.rows.length > 0) {
+      return res.json({
+        success: false,
+        message: "Mã ngăn tủ đã tồn tại.",
+      });
+    }
+
+    // Thêm vào Supabase
+    await pool.query(
+      `
+      INSERT INTO lockers
+      (id, status, current_order_id, pending_command, updated_at)
+      VALUES ($1, $2, $3, $4, $5)
+      `,
+      [
+        id,
+        "trong",
+        null,
+        null,
+        new Date(),
+      ]
+    );
+
+    res.json({
+      success: true,
     });
-    return { success: true };
-  });
-  res.json(result);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Lỗi thêm ngăn tủ",
+    });
+  }
 });
 
 // Mở tủ khẩn cấp (ví dụ: kỹ thuật viên cần lấy hàng ra khi lỗi hệ thống)

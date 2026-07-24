@@ -88,7 +88,7 @@ function startPolling(orderId) {
       if (data.status === "co_hang") {
         clearInterval(pollTimer);
         statusTitle.textContent = "Giao hàng thành công!";
-        statusMessage.textContent = "OTP đã được gửi tới người nhận qua SMS. Cảm ơn bạn.";
+        statusMessage.textContent ="OTP đã được gửi tới email người nhận. Cảm ơn bạn.";
         spinner.style.display = "none";
         newOrderBtn.hidden = false;
       } else if (data.status === "huy") {

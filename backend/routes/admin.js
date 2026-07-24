@@ -1,4 +1,5 @@
 // admin.js - Toàn bộ nghiệp vụ dành cho admin (yêu cầu đăng nhập bằng JWT).
+const orderService = require("../services/orderService");
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
@@ -8,9 +9,8 @@ const { transaction, readOnly } = require("../data/db");
 const pool = require("../data/postgres");
 const { requireAdmin } = require("../middleware/auth");
 const otpService = require("../services/otp");
-const smsService = require("../services/sms");
 const antifraud = require("../services/antifraud");
-
+const emailService = require("../services/email");
 // ---------- Đăng nhập ----------
 router.post("/login", async (req, res) => {
   try {
@@ -87,7 +87,34 @@ router.post("/doi-mat-khau", requireAdmin, async (req, res) => {
 });
 
 router.use(requireAdmin);
+// Tạo đơn gửi hàng từ Admin
+router.post("/orders", async (req, res) => {
+  try {
+    const result = await orderService.createOrder({
+      recipientPhone: req.body.recipientPhone,
+      recipientName: req.body.recipientName,
+      recipientEmail: req.body.recipientEmail,
+      shipperPhone: req.body.shipperPhone,
+      room: req.body.room,
+      trackingCode: req.body.trackingCode,
+      viaKeypad: false,
+    });
 
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
 // ---------- 1. Quản lý danh sách cư dân / sinh viên ----------
 router.get("/residents", async (req, res) => {
   try {
@@ -430,8 +457,13 @@ router.post("/orders/:id/cap-lai-otp", async (req, res) => {
 
   if (!result.success) return res.status(400).json(result);
 
-  const message = `SMART LOCKER: Ma mo tu moi cua ban tai tu ${result.order.lockerId} la: ${result.otpPlain}. Ma chi dung mot lan.`;
-  await smsService.sendSms(result.order.recipientPhone, message);
+  await emailService.sendLockerOtpEmail({
+    email: result.order.recipientEmail,
+    otp: result.otpPlain,
+    lockerId: result.order.lockerId,
+    orderId: result.order.id,
+    expiresHours: 48,
+  });
 
   res.json({ success: true });
 });

@@ -1,5 +1,21 @@
+# Thư viện Node.js
 node_modules/
+
+# Biến môi trường và thông tin bí mật
+.env
+.env.*
+!.env.example
+
+# Dữ liệu chạy thử cục bộ
 backend/data/db.json
+
+# Ảnh camera phát sinh khi chạy
 backend/uploads/camera/*
 !backend/uploads/camera/.gitkeep
-.env
+
+# File log và file rác
+*.log
+*.zip
+.DS_Store
+Thumbs.db
+.vscode/
